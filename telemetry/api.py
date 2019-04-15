@@ -1,7 +1,7 @@
 
 
 #Restful api
-from flask import Flask
+from flask import Flask, render_template
 from flask_restful import Resource, Api, reqparse
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -47,8 +47,12 @@ class greenHouseInfo(Resource):
         insertRow= [time.time(), args['temp'], args['humidity']]
         sheet.insert_row(insertRow, 1)
         return insertRow, 201
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('index.html')
         
-api.add_resource(greenHouseInfo, '/telemetry')
+api.add_resource(greenHouseInfo, '/telemetryCRUD')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port = 80, debug=True)
