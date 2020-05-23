@@ -1,13 +1,14 @@
 
 
 #Restful api
-from flask import Flask, render_template
+from flask import Flask, render_template, Markup
 from flask_restful import Resource, Api, reqparse
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import time
 import os
 import sys
+import json
 
 app = Flask(__name__)
 api = Api(app)
@@ -24,15 +25,16 @@ scope = ["https://spreadsheets.google.com/feeds",
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_json = basedir+'/key.json'
 creds = ServiceAccountCredentials.from_json_keyfile_name(data_json, scope)
-client = gspread.authorize(creds)
-sheet = client.open("greenHouse_telemetry").sheet1
+
 
 class greenHouseInfo(Resource):
 
     def get(self):
+        client = gspread.authorize(creds)
+        sheet = client.open("greenHouse_telemetry").sheet1
         jsonObj = {
                 "metadata": {
-                    'timeRetrieved': time.time(),
+                    'timeRetrieved': time.time()*1000
                 },
                 'data':{
                     'timeStamps':sheet.col_values(1),
@@ -44,13 +46,21 @@ class greenHouseInfo(Resource):
     
     def post(self):
         args = parser.parse_args()
-        insertRow= [time.time(), args['temp'], args['humidity']]
+        insertRow= [time.time()*1000, args['temp'], args['humidity']]
+        client = gspread.authorize(creds)
+        sheet = client.open("greenHouse_telemetry").sheet1
         sheet.insert_row(insertRow, 1)
         return insertRow, 201
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('index.html')
+    client = gspread.authorize(creds)
+    sheet = client.open("greenHouse_telemetry").sheet1
+    data = [
+         [int(x),float(y)] for x,y in zip(sheet.col_values(1), sheet.col_values(2))
+      ]
+    print(data)
+    return render_template('index.html', token=data)
         
 api.add_resource(greenHouseInfo, '/telemetryCRUD')
 
